@@ -1045,3 +1045,46 @@ rxWithPreserveSeed <- function(code) {
 rxode2randomMd5 <- function() {
   rxode2random.md5  
 }
+
+
+### These are for accessing rxode2random without the abi dependency
+.qtest <- function(a, b) {
+  .Call(`_rxode2random_qtest_sexp`, a, b)
+}
+
+.qstrictS <- function(a, b) {
+  .Call(`_rxode2random_qstrictS_sexp`, a, b)
+}
+
+.qstrictSn <- function(a, b) {
+  .Call(`_rxode2random_qstrictSn_sexp`, a, b)
+}
+
+.qstrictSdn <- function(a, b) {
+  .Call(`_rxode2random_qstrictSdn_sexp`, a, b)
+}
+
+.qassertS <- function(a, b, c) {
+  .Call(`_rxode2random_qassertS_sexp`, a, b, c)
+}
+
+
+
+#' Expand parameters
+#'
+#'  
+#' @param object rxode2 model variables object
+#' @param params parameters to expand
+#' @param events event table to help with the expansion
+#' @param control control structure to help with the parameter generation
+#' @return Expanded parameters for simulation
+#' @export 
+#' @author Matthew L. Fidler
+#' @keywords internal
+.expandPars <- function(object, params, events, control) {
+  .Call(`_rxode2random_expandPars_`, object, params, events, control)
+}
+
+.funPtrs <- function() {
+  .Call(`_rxode2random_funPtrs`)
+}

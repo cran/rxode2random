@@ -54,7 +54,6 @@ SEXP _rxode2random_phi(SEXP q);
 SEXP _rxode2random_rxSetSeed(SEXP);
 SEXP _rxode2random_cbindOme(SEXP, SEXP, SEXP);
 SEXP _rxode2random_vecDF(SEXP, SEXP);
-SEXP _rxode2random_convertId_(SEXP);
 
 bool _rxode2random_qtest(SEXP in, const char *test);
 SEXP _rxode2random_qstrictS(SEXP nn, const char *what);
@@ -62,6 +61,11 @@ SEXP _rxode2random_qstrictSn(SEXP x_, const char *what);
 SEXP _rxode2random_qstrictSdn(SEXP x_, const char *what);
 
 SEXP _rxode2random_qassertS(SEXP in, const char *test, const char *what);
+SEXP _rxode2random_qtest_sexp(SEXP in, SEXP test);
+SEXP _rxode2random_qstrictS_sexp(SEXP, SEXP);
+SEXP _rxode2random_qassertS_sexp(SEXP, SEXP);
+SEXP _rxode2random_qstrictSn_sexp(SEXP in, SEXP test);
+SEXP _rxode2random_qstrictSdn_sexp(SEXP in, SEXP test);
 
 typedef SEXP (*lotriMat_type) (SEXP, SEXP, SEXP);
 typedef SEXP (*asLotriMat_type) (SEXP, SEXP, SEXP);
@@ -81,6 +85,31 @@ typedef SEXP (*getLowerVec_t)(int type, rx_solve* rx);
 typedef SEXP (*getUpperVec_t)(int type, rx_solve* rx);
 typedef SEXP (*getArmaMat_t)(int type, int csim, rx_solve* rx);
 
+SEXP _rxode2random_funPtrs(void) {
+  int pro = 0;
+  SEXP ret = PROTECT(allocVector(VECSXP, 5)); pro++;
+  SET_VECTOR_ELT(ret, 0, R_MakeExternalPtrFn((DL_FUNC) &_rxode2random_getRxSeed1,
+                                             Rf_install("_rxode2random_getRxSeed1"),
+                                             R_NilValue));
+  SET_VECTOR_ELT(ret, 1, R_MakeExternalPtrFn((DL_FUNC) &_rxode2random_setSeedEng1,
+                                             Rf_install("_rxode2random_setSeedEng1"),
+                                             R_NilValue));
+  SET_VECTOR_ELT(ret, 2, R_MakeExternalPtrFn((DL_FUNC) &_rxode2random_setRxSeedFinal,
+                                             Rf_install("_rxode2random_setRxSeedFinal"),
+                                             R_NilValue));
+  SET_VECTOR_ELT(ret, 3, R_MakeExternalPtrFn((DL_FUNC) &_rxode2random_seedEng,
+                                             Rf_install("_rxode2random_seedEng"),
+                                             R_NilValue));
+  SET_VECTOR_ELT(ret, 4, R_MakeExternalPtrFn((DL_FUNC) &rxunif,
+                                             Rf_install("rxunif"),
+                                             R_NilValue));
+  SEXP cls = PROTECT(Rf_allocVector(STRSXP, 1)); pro++;
+  SET_STRING_ELT(cls, 0, Rf_mkChar("rxode2randomFunPtrs"));
+  Rf_setAttrib(ret,R_ClassSymbol, cls);
+  UNPROTECT(pro);
+  return(ret);
+}
+
 void _rxode2random_assignPtrsInRxode2(rx_solve rx,
                                       rx_solving_options op,
                                       rxSolveFreeSexp_t rSF,
@@ -98,7 +127,8 @@ void _rxode2random_assignPtrsInRxode2(rx_solve rx,
 
 void R_init_rxode2random(DllInfo *info){
   R_CallMethodDef callMethods[]  = {
-    {"_rxode2random_convertId_", (DL_FUNC) &_rxode2random_convertId_, 1},
+    {"_rxode2random_funPtrs", (DL_FUNC) &_rxode2random_funPtrs, 0},
+    {"_rxode2random_qassertS_sexp", (DL_FUNC) &_rxode2random_qassertS_sexp, 3},
     {"_rxode2random_vecDF", (DL_FUNC) &_rxode2random_vecDF, 2},
     {"_rxode2random_cbindOme", (DL_FUNC) &_rxode2random_cbindOme, 3},
     {"_rxode2random_rxSetSeed", (DL_FUNC) &_rxode2random_rxSetSeed, 1},
@@ -140,13 +170,15 @@ void R_init_rxode2random(DllInfo *info){
     {"_rxode2random_rxordSelect", (DL_FUNC) &_rxode2random_rxordSelect, 2},
     {"_rxode2random_rxGetSeed", (DL_FUNC) &_rxode2random_rxGetSeed, 0},
     {"_rxode2random_phi", (DL_FUNC) &_rxode2random_phi, 1},
+    {"_rxode2random_qtest_sexp", (DL_FUNC) &_rxode2random_qtest_sexp, 2},
+    {"_rxode2random_qstrictS_sexp", (DL_FUNC) &_rxode2random_qstrictS_sexp, 2},
+    {"_rxode2random_qstrictSn_sexp", (DL_FUNC) &_rxode2random_qstrictSn_sexp, 2},
+    {"_rxode2random_qstrictSdn_sexp", (DL_FUNC) &_rxode2random_qstrictSdn_sexp, 2},
     {NULL, NULL, 0} 
   };
   // C callable to assign environments.
   R_RegisterCCallable("rxode2random", "_rxode2random_assignPtrsInRxode2", (DL_FUNC) &_rxode2random_assignPtrsInRxode2);
   R_RegisterCCallable("rxode2random", "_rxode2random_cbindOme", (DL_FUNC) &_rxode2random_cbindOme);
-  R_RegisterCCallable("rxode2random", "_rxode2random_convertId_", (DL_FUNC) &_rxode2random_convertId_);
-  R_RegisterCCallable("rxode2random", "_rxode2random_convertId_", (DL_FUNC) &_rxode2random_convertId_);
   R_RegisterCCallable("rxode2random", "_rxode2random_cvPost_", (DL_FUNC) &_rxode2random_cvPost_);
   R_RegisterCCallable("rxode2random", "_rxode2random_expandPars_", (DL_FUNC) &_rxode2random_expandPars_);
   R_RegisterCCallable("rxode2random", "_rxode2random_expandTheta_", (DL_FUNC) &_rxode2random_expandTheta_);

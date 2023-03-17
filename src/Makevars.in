@@ -1,7 +1,6 @@
 # -*- mode: makefile-gmake -*-
 
-CXX_STD = CXX14
-CXX14STD = @CXX14STD@
+CXX_STD = CXX17
 
 ################################################################################
 ## Package library flags.
@@ -9,6 +8,6 @@ PKG_LIBS    = $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS) $(SHLIB_OPENMP_CXXFLAGS)
 
 # Release options
 PKG_CFLAGS  =  -D_isrxode2random_
-PKG_CXXFLAGS = $(SHLIB_OPENMP_CXXFLAGS) -D_isrxode2random_ 
+PKG_CXXFLAGS = $(SHLIB_OPENMP_CXXFLAGS) -D_isrxode2random_ -DBOOST_DISABLE_ASSERTS -DBOOST_NO_CXX11_STATIC_ASSERT -DBOOST_PHOENIX_NO_VARIADIC_EXPRESSION -DBOOST_NO_AUTO_PTR -D_REENTRANT
 
 
