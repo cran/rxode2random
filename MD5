@@ -1,6 +1,6 @@
-39e96d105bc00e555f1a423e85e5a3aa *DESCRIPTION
+6e2b6dd7d83b51928dfa9cedb6ab24e8 *DESCRIPTION
 18569785a881d596aeb380ca2f3cb75c *NAMESPACE
-49b3c7252163126271c67b6d0caa3240 *NEWS.md
+df6d92b1ef1f8c41fae9d880d50a16f8 *NEWS.md
 6d106a0d1895e30bccf55bd1ea730d24 *R/RcppExports.R
 c2ffb572b3fd49ea45f66ea6f97c151b *R/reexports.R
 5fcea4da2e2b71b0fd5346de45b60514 *R/rxode2random_md5.R
@@ -54,7 +54,7 @@ dba5fd6387930924ac8616e1cab84dcd *man/rxweibull.Rd
 7d4f6d1f378ae140c5edbb7a85d438ac *src/checkmate.h
 cf6ed731581019115093ddd0282b4e77 *src/checkmate_stub.c
 260eb2c8f41d2414e360a64f37f238bf *src/cvPost.cpp
-dda16df0b29a3bc9e85cc7a559aef1b4 *src/init.c
+6583ce2c934937e1c861535d0f683f0e *src/init.c
 c6ea7f9179d95b6a0c9e7ddc4614893e *src/rxomp.h
 7dec6b8e1935f3c9a62c662d0e6eb2cf *src/rxthreefry.cpp
 8de6d0c804884516fecb8c6728102522 *src/rxthreefry.h
