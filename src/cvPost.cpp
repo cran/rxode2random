@@ -32,7 +32,9 @@ extern "C"{
   rxSolveFreeSexp_t rxSolveFree;
   typedef void (*setZeroMatrix_t)(int which);
   setZeroMatrix_t  setZeroMatrix;
-  typedef SEXP (*etTrans_t)(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+  typedef SEXP (*etTrans_t)(SEXP, SEXP, SEXP, SEXP, SEXP,
+                            SEXP, SEXP, SEXP, SEXP, SEXP,
+                            SEXP);
   etTrans_t etTransSexp;
   typedef void (*rxModelsAssignC_t)(const char* str, SEXP assign);
   rxModelsAssignC_t rxModelsAssign;
@@ -87,9 +89,13 @@ extern "C"{
 List etTrans(List inData, const RObject &obj, bool addCmt=false,
              bool dropUnits=false, bool allTimeVar=false,
              bool keepDosingOnly=false, Nullable<LogicalVector> combineDvid=R_NilValue,
-             CharacterVector keep = CharacterVector(0)) {
+             CharacterVector keep = CharacterVector(0),
+             bool addlKeepsCov=false,
+             bool addlDropSs = true,
+             bool ssAtDoseTime = true) {
   return as<List>(etTransSexp(wrap(inData), wrap(obj), wrap(addCmt), wrap(dropUnits), wrap(allTimeVar),
-                              wrap(keepDosingOnly), wrap(combineDvid),wrap(keep = CharacterVector(0))));
+                              wrap(keepDosingOnly), wrap(combineDvid),wrap(keep),
+                              wrap(addlKeepsCov), wrap(addlDropSs), wrap(ssAtDoseTime)));
 }
 
 
@@ -903,7 +909,10 @@ SEXP expandPars_(SEXP objectS, SEXP paramsS, SEXP eventsS, SEXP controlS) {
       events = PROTECT(etTrans(as<List>(eventsS), nestObj,
                                (INTEGER(mv[RxMv_flags])[RxMvFlag_hasCmt] == 1),
                                false, false, true, R_NilValue,
-                               control[Rxc_keepF])); pro++;
+                               control[Rxc_keepF], 
+                               control[Rxc_addlKeepsCov],
+                               control[Rxc_addlDropSs],
+                               control[Rxc_ssAtDoseTime])); pro++;
       rxModelsAssign(".nestEvents", events);
       RObject cls = Rf_getAttrib(events, R_ClassSymbol);
       List rxLst = cls.attr(".rxode2.lst");
@@ -1070,13 +1079,19 @@ SEXP expandPars_(SEXP objectS, SEXP paramsS, SEXP eventsS, SEXP controlS) {
       events = PROTECT(etTrans(as<List>(eventsS), nestObj,
                                (INTEGER(mv[RxMv_flags])[RxMvFlag_hasCmt] == 1),
                                false, false, true, R_NilValue,
-                               control[Rxc_keepF])); pro++;
+                               control[Rxc_keepF], 
+                               control[Rxc_addlKeepsCov],
+                               control[Rxc_addlDropSs],
+                               control[Rxc_ssAtDoseTime])); pro++;
       rxModelsAssign(".nestEvents", events);
     } else if (!Rf_inherits(events, "rxEtTrans")){
       events = PROTECT(etTrans(as<List>(events), nestObj,
                                (INTEGER(mv[RxMv_flags])[RxMvFlag_hasCmt] == 1),
                                false, false, true, R_NilValue,
-                               control[Rxc_keepF])); pro++;
+                               control[Rxc_keepF], 
+                               control[Rxc_addlKeepsCov],
+                               control[Rxc_addlDropSs],
+                               control[Rxc_ssAtDoseTime])); pro++;
       rxModelsAssign(".nestEvents", events);
     }
     int nobs =  Rf_length(VECTOR_ELT(events, 0));
@@ -1311,4 +1326,91 @@ SEXP nestingInfo_(SEXP omega, List data) {
                            _["belowVars"]=belowVars,
                            _["extraTheta"]=extraTheta,
                            _["extraEta"]=extraEta));
+}
+
+//[[Rcpp::export]]
+RObject swapMatListWithCube_(RObject inO) {
+  Rcpp::List omegaList;
+  if (inO.hasAttribute("dimnames")) {
+    Rcpp::List dimNamesFinal(2);
+    Rcpp::List dimNamesCur = inO.attr("dimnames");
+    dimNamesFinal[0] = dimNamesCur[0];
+    dimNamesFinal[1] = dimNamesCur[1];
+    arma::cube omegaCube = as<arma::cube>(inO);
+    Rcpp::List omegaList(omegaCube.n_slices);
+    for (int i = 0; i < omegaList.size(); ++i) {
+      RObject cur = wrap(omegaCube.slice(i));
+      cur.attr("dimnames") = dimNamesFinal;
+      omegaList[i] = cur;
+    }
+    return wrap(omegaList);
+  } else {
+    Rcpp::List omegaList = as<Rcpp::List>(inO);
+    RObject ro0 = omegaList[0];
+    arma::mat n0 = as<arma::mat>(omegaList[0]);
+    Rcpp::List dimNamesFinal(3);
+    bool hasDim = false;
+    if (ro0.hasAttribute("dimnames")) {
+      Rcpp::List dimNamesCur = ro0.attr("dimnames");
+      if (dimNamesCur.size() == 2) {
+        dimNamesFinal[0] = dimNamesCur[0];
+        dimNamesFinal[1] = dimNamesCur[1];
+        dimNamesFinal[2] = R_NilValue;
+      }
+      hasDim = true;
+    }
+    arma::cube omegaCube(n0.n_rows, n0.n_cols, omegaList.size());
+    for (int i = 0; i < omegaList.size(); ++i) {
+      omegaCube.slice(i) = as<arma::mat>(omegaList[i]);
+    }
+    RObject cur = wrap(omegaCube);
+    if (hasDim) cur.attr("dimnames") = dimNamesFinal;
+    return cur;
+  }
+  return R_NilValue;
+}
+
+//[[Rcpp::export]]
+Rcpp::List omegaListRse(RObject omegaIn) {
+  arma::cube omegaCube;
+  Rcpp::List omegaList;
+  bool useList = false;
+  unsigned int ntot=0;
+  if (omegaIn.hasAttribute("dim")) {
+    omegaCube = as<arma::cube>(omegaIn);
+    ntot = omegaCube.n_slices;
+  } else {
+    omegaList = as<Rcpp::List>(omegaIn);
+    useList = true;
+    ntot = omegaList.size();
+  }
+  arma::mat oldM;
+  if (useList) {
+    oldM = as<arma::mat>(omegaList[0]);
+  } else {
+    oldM = omegaCube.slice(0);
+  }
+  arma::mat newM = oldM;
+  arma::mat oldS(oldM.n_rows, oldM.n_rows, arma::fill::zeros);
+  arma::mat newS = oldS;
+  int m = 1;
+  for (unsigned int i = 1; i < ntot; i++) {
+    m++;
+    arma::mat x;
+    if (useList) {
+      x = as<arma::mat>(omegaList[i]);
+    } else {
+      x = omegaCube.slice(i);
+    }
+    newM = oldM + (x-oldM)/m;
+    newS = oldS + (x-oldM)*(x-newM);
+    oldM = newM;
+    oldS = newS;
+  }
+  arma::mat var = newS/(m-1);
+  arma::mat sd = sqrt(var);
+  return List::create(_["mean"] = wrap(newM),
+                      _["var"] = wrap(var),
+                      _["sd"] = wrap(sd),
+                      _["rse"]= wrap(sd/newM));
 }
