@@ -23,6 +23,19 @@ using namespace arma;
 #include "seed.h"
 #include "../inst/include/rxode2random_fillVec.h"
 
+#include <boost/random/normal_distribution.hpp>
+#include <boost/random/negative_binomial_distribution.hpp>
+#include <boost/random/binomial_distribution.hpp>
+#include <boost/random/cauchy_distribution.hpp>
+#include <boost/random/chi_squared_distribution.hpp>
+#include <boost/random/exponential_distribution.hpp>
+#include <boost/random/fisher_f_distribution.hpp>
+#include <boost/random/gamma_distribution.hpp>
+#include <boost/random/geometric_distribution.hpp>
+#include <boost/random/poisson_distribution.hpp>
+#include <boost/random/student_t_distribution.hpp>
+#include <boost/random/weibull_distribution.hpp>
+
 extern "C" {
   rx_solve rxode2random_rx_global;
   rx_solving_options rxode2random_op_global;
@@ -92,7 +105,7 @@ SEXP rxRmvn_(NumericMatrix A_, arma::rowvec mu, arma::mat sigma,
     eng.seed(seed);
 #endif
 
-    std::normal_distribution<> snorm(0.0, 1.0);
+    boost::random::normal_distribution<> snorm(0.0, 1.0);
 
     double acc;
     arma::rowvec work(d);
@@ -173,7 +186,7 @@ void rxRmvn2_(arma::mat& A, arma::rowvec mu, arma::mat sigma,
     eng.seed(seed);
 #endif
 
-  std::normal_distribution<> snorm(0.0, 1.0);
+  boost::random::normal_distribution<> snorm(0.0, 1.0);
 
   double acc;
   arma::rowvec work(d);
@@ -249,7 +262,7 @@ double tn(double l, double u, sitmo::threefry& eng, double tol = 2.05){
   // tol=2.05 # controls switch between methods
   // # threshold can be tuned for maximum speed for each platform
   // case: abs(u-l)>tol, uses accept-reject from randn
-  std::normal_distribution<> rnorm(0.0, 1.0);
+  boost::random::normal_distribution<> rnorm(0.0, 1.0);
   std::uniform_real_distribution<> runif(0.0, 1.0);
   double x=0;
   if (fabs(u - l) > tol){
@@ -856,14 +869,14 @@ RObject rxSeedEng(int ncores = 1){
 
 extern "C" int rxnbinomMu(rx_solving_options_ind* ind, int size, double mu) {
   double p = ((double)size)/(((double)size) + mu);
-  std::negative_binomial_distribution<int> d(size, p);
+  boost::random::negative_binomial_distribution<int> d(size, p);
   return d(_eng[rx_get_thread(op_global.cores)]);
 }
 
 extern "C" int rinbinomMu(rx_solving_options_ind* ind, int id, int size, double mu){
   if (ind->isIni == 1) {
     double p = ((double)size)/(((double)size) + mu);
-    std::negative_binomial_distribution<int> d(size, p);
+    boost::random::negative_binomial_distribution<int> d(size, p);
     ind->simIni[id] = (double) d(_eng[rx_get_thread(op_global.cores)]);
   }
   return (int)ind->simIni[id];
@@ -874,7 +887,7 @@ IntegerVector rxnbinomMu_(int size, double mu, int n, int ncores){
   IntegerVector ret(n);
   int n2 = ret.size();
   double p = ((double)size)/(((double)size) + mu);
-  std::binomial_distribution<int> d(size, p);
+  boost::random::binomial_distribution<int> d(size, p);
   int *retD = ret.begin();
 
 #ifdef _OPENMP
@@ -897,13 +910,13 @@ IntegerVector rxnbinomMu_(int size, double mu, int n, int ncores){
 }
 
 extern "C" int rxnbinom(rx_solving_options_ind* ind, int size, double prob) {
-  std::negative_binomial_distribution<int> d(size, prob);
+  boost::random::negative_binomial_distribution<int> d(size, prob);
   return d(_eng[rx_get_thread(op_global.cores)]);
 }
 
 extern "C" int rinbinom(rx_solving_options_ind* ind, int id, int size, double prob){
   if (ind->isIni == 1) {
-    std::negative_binomial_distribution<int> d(size, prob);
+    boost::random::negative_binomial_distribution<int> d(size, prob);
     ind->simIni[id] = (double) d(_eng[rx_get_thread(op_global.cores)]);
   }
   return (int)ind->simIni[id];
@@ -913,7 +926,7 @@ extern "C" int rinbinom(rx_solving_options_ind* ind, int id, int size, double pr
 IntegerVector rxnbinom_(int size, double prob, int n, int ncores){
   IntegerVector ret(n);
   int n2 = ret.size();
-  std::binomial_distribution<int> d(size, prob);
+  boost::random::binomial_distribution<int> d(size, prob);
   int *retD = ret.begin();
 
 #ifdef _OPENMP
@@ -938,13 +951,13 @@ IntegerVector rxnbinom_(int size, double prob, int n, int ncores){
 
 extern "C" int rxbinom(rx_solving_options_ind* ind, int n, double prob){
   if (!ind->inLhs) return 0;
-  std::binomial_distribution<int> d(n, prob);
+  boost::random::binomial_distribution<int> d(n, prob);
   return d(_eng[rx_get_thread(op_global.cores)]);
 }
 
 extern "C" int ribinom(rx_solving_options_ind* ind, int id, int n, double prob){
   if (ind->isIni == 1) {
-    std::binomial_distribution<int> d(n, prob);
+    boost::random::binomial_distribution<int> d(n, prob);
     ind->simIni[id] = (double) d(_eng[rx_get_thread(op_global.cores)]);
   }
   return (int)ind->simIni[id];
@@ -954,7 +967,7 @@ extern "C" int ribinom(rx_solving_options_ind* ind, int id, int n, double prob){
 IntegerVector rxbinom_(int n0, double prob, int n, int ncores){
   IntegerVector ret(n);
   int n2 = ret.size();
-  std::binomial_distribution<int> d(n0, prob);
+  boost::random::binomial_distribution<int> d(n0, prob);
   int *retD = ret.begin();
 
 #ifdef _OPENMP
@@ -978,13 +991,13 @@ IntegerVector rxbinom_(int n0, double prob, int n, int ncores){
 
 extern "C" double rxcauchy(rx_solving_options_ind* ind, double location, double scale){
   if (!ind->inLhs) return 0;
-  std::cauchy_distribution<double> d(location, scale);
+  boost::random::cauchy_distribution<double> d(location, scale);
   return d(_eng[rx_get_thread(op_global.cores)]);
 }
 
 extern "C" double ricauchy(rx_solving_options_ind* ind, int id, double location, double scale){
   if (ind->isIni == 1) {
-    std::cauchy_distribution<double> d(location, scale);
+    boost::random::cauchy_distribution<double> d(location, scale);
     ind->simIni[id] = d(_eng[rx_get_thread(op_global.cores)]);
   }
   return ind->simIni[id];
@@ -994,7 +1007,7 @@ extern "C" double ricauchy(rx_solving_options_ind* ind, int id, double location,
 NumericVector rxcauchy_(double location, double scale, int n, int ncores){
   NumericVector ret(n);
   int n2 = ret.size();
-  std::cauchy_distribution<double> d(location, scale);
+  boost::random::cauchy_distribution<double> d(location, scale);
   double *retD = ret.begin();
 
 #ifdef _OPENMP
@@ -1019,14 +1032,14 @@ NumericVector rxcauchy_(double location, double scale, int n, int ncores){
 extern "C" double rxchisq(rx_solving_options_ind* ind, double df){
   if (!ind->inLhs) return 0;
   // Non central not supported in C++11
-  std::chi_squared_distribution<double> d(df);
+  boost::random::chi_squared_distribution<double> d(df);
   return d(_eng[rx_get_thread(op_global.cores)]);
 }
 
 extern "C" double richisq(rx_solving_options_ind* ind, int id, double df){
   if (ind->isIni == 1) {
     // Non central not supported in C++11
-    std::chi_squared_distribution<double> d(df);
+    boost::random::chi_squared_distribution<double> d(df);
     ind->simIni[id] = d(_eng[rx_get_thread(op_global.cores)]);
   }
   return ind->simIni[id];
@@ -1036,7 +1049,7 @@ extern "C" double richisq(rx_solving_options_ind* ind, int id, double df){
 NumericVector rxchisq_(double df, int n, int ncores){
   NumericVector ret(n);
   int n2 = ret.size();
-  std::chi_squared_distribution<double> d(df);
+  boost::random::chi_squared_distribution<double> d(df);
   double *retD = ret.begin();
 
 #ifdef _OPENMP
@@ -1060,14 +1073,14 @@ NumericVector rxchisq_(double df, int n, int ncores){
 
 extern "C" double rxexp(rx_solving_options_ind* ind, double rate){
   if (!ind->inLhs) return 0;
-  std::exponential_distribution<double> d(rate);
+  boost::random::exponential_distribution<double> d(rate);
   return d(_eng[rx_get_thread(op_global.cores)]);
 }
 
 
 extern "C" double riexp(rx_solving_options_ind* ind, int id, double rate){
   if (ind->isIni) {
-    std::exponential_distribution<double> d(rate);
+    boost::random::exponential_distribution<double> d(rate);
     ind->simIni[id] = d(_eng[rx_get_thread(op_global.cores)]);
   }
   return ind->simIni[id];
@@ -1077,7 +1090,7 @@ extern "C" double riexp(rx_solving_options_ind* ind, int id, double rate){
 NumericVector rxexp_(double rate, int n, int ncores){
   NumericVector ret(n);
   int n2 = ret.size();
-  std::exponential_distribution<double> d(rate);
+  boost::random::exponential_distribution<double> d(rate);
   double *retD = ret.begin();
 
 #ifdef _OPENMP
@@ -1101,13 +1114,13 @@ NumericVector rxexp_(double rate, int n, int ncores){
 
 extern "C" double rxf(rx_solving_options_ind* ind, double df1, double df2){
   if (!ind->inLhs) return 0;
-  std::fisher_f_distribution<double> d(df1, df2);
+  boost::random::fisher_f_distribution<double> d(df1, df2);
   return d(_eng[rx_get_thread(op_global.cores)]);
 }
 
 extern "C" double rif(rx_solving_options_ind* ind, int id, double df1, double df2){
   if (ind->isIni) {
-    std::fisher_f_distribution<double> d(df1, df2);
+    boost::random::fisher_f_distribution<double> d(df1, df2);
     ind->simIni[id] =  d(_eng[rx_get_thread(op_global.cores)]);
   }
   return ind->simIni[id];
@@ -1117,7 +1130,7 @@ extern "C" double rif(rx_solving_options_ind* ind, int id, double df1, double df
 NumericVector rxf_(double df1, double df2, int n, int ncores){
   NumericVector ret(n);
   int n2 = ret.size();
-  std::fisher_f_distribution<double> d(df1, df2);
+  boost::random::fisher_f_distribution<double> d(df1, df2);
   double *retD = ret.begin();
 
 #ifdef _OPENMP
@@ -1142,13 +1155,13 @@ NumericVector rxf_(double df1, double df2, int n, int ncores){
 extern "C" double rxgamma(rx_solving_options_ind* ind, double shape, double rate){
   // R uses rate; C++ uses scale
   if (!ind->inLhs) return 0;
-  std::gamma_distribution<double> d(shape, 1.0/rate);
+  boost::random::gamma_distribution<double> d(shape, 1.0/rate);
   return d(_eng[rx_get_thread(op_global.cores)]);
 }
 
 extern "C" double rigamma(rx_solving_options_ind* ind, int id, double shape, double rate) {
   if (ind->isIni) {
-    std::gamma_distribution<double> d(shape, 1.0/rate);
+    boost::random::gamma_distribution<double> d(shape, 1.0/rate);
     ind->simIni[id] =  d(_eng[rx_get_thread(op_global.cores)]);
   }
   return ind->simIni[id];
@@ -1158,7 +1171,7 @@ extern "C" double rigamma(rx_solving_options_ind* ind, int id, double shape, dou
 NumericVector rxgamma_(double shape, double rate, int n, int ncores){
   NumericVector ret(n);
   int n2 = ret.size();
-  std::gamma_distribution<double> d(shape, 1.0/rate);
+  boost::random::gamma_distribution<double> d(shape, 1.0/rate);
   double *retD = ret.begin();
 
 #ifdef _OPENMP
@@ -1202,8 +1215,8 @@ extern "C" double ribeta(rx_solving_options_ind* ind, int id, double shape1, dou
 NumericVector rxbeta_(double shape1, double shape2, int n, int ncores){
   NumericVector ret(n);
   int n2 = ret.size();
-  std::gamma_distribution<double> d1(shape1, 1.0);
-  std::gamma_distribution<double> d2(shape2, 1.0);
+  boost::random::gamma_distribution<double> d1(shape1, 1.0);
+  boost::random::gamma_distribution<double> d2(shape2, 1.0);
   double *retD = ret.begin();
 
 #ifdef _OPENMP
@@ -1228,13 +1241,13 @@ NumericVector rxbeta_(double shape1, double shape2, int n, int ncores){
 
 extern "C" int rxgeom(rx_solving_options_ind* ind, double prob){
   if (!ind->inLhs) return 0;
-  std::geometric_distribution<int> d(prob);
+  boost::random::geometric_distribution<int> d(prob);
   return d(_eng[rx_get_thread(op_global.cores)]);
 }
 
 extern "C" int rigeom(rx_solving_options_ind* ind, int id, double prob){
   if (ind->isIni) {
-    std::geometric_distribution<int> d(prob);
+    boost::random::geometric_distribution<int> d(prob);
     ind->simIni[id] = (double)d(_eng[rx_get_thread(op_global.cores)]);
   }
   return (int)ind->simIni[id];
@@ -1244,7 +1257,7 @@ extern "C" int rigeom(rx_solving_options_ind* ind, int id, double prob){
 IntegerVector rxgeom_(double prob, int n, int ncores){
   IntegerVector ret(n);
   int n2 = ret.size();
-  std::geometric_distribution<int> d(prob);
+  boost::random::geometric_distribution<int> d(prob);
   int *retD = ret.begin();
 
 #ifdef _OPENMP
@@ -1269,13 +1282,13 @@ IntegerVector rxgeom_(double prob, int n, int ncores){
 // FIXME rnbinom
 extern "C" double rxnorm(rx_solving_options_ind* ind, double mean, double sd){
   if (!ind->inLhs) return 0.0;
-  std::normal_distribution<double> d(mean, sd);
+  boost::random::normal_distribution<double> d(mean, sd);
   return d(_eng[rx_get_thread(op_global.cores)]);
 }
 
 extern "C" double rinorm(rx_solving_options_ind* ind, int id, double mean, double sd) {
   if (ind->isIni) {
-    std::normal_distribution<double> d(mean, sd);
+    boost::random::normal_distribution<double> d(mean, sd);
     ind->simIni[id] = d(_eng[rx_get_thread(op_global.cores)]);
   }
   return ind->simIni[id];
@@ -1285,7 +1298,7 @@ extern "C" double rinorm(rx_solving_options_ind* ind, int id, double mean, doubl
 NumericVector rxnorm_(double mean, double sd, int n, int ncores){
   NumericVector ret(n);
   int n2 = ret.size();
-  std::normal_distribution<double> d(mean, sd);
+  boost::random::normal_distribution<double> d(mean, sd);
   double *retD = ret.begin();
 
 #ifdef _OPENMP
@@ -1309,13 +1322,13 @@ NumericVector rxnorm_(double mean, double sd, int n, int ncores){
 
 extern "C" int rxpois( rx_solving_options_ind* ind, double lambda){
   if (!ind->inLhs) return 0.0;
-  std::poisson_distribution<int> d(lambda);
+  boost::random::poisson_distribution<int> d(lambda);
   return d(_eng[rx_get_thread(op_global.cores)]);
 }
 
 extern "C" int ripois(rx_solving_options_ind* ind, int id, double lambda){
   if (ind->isIni == 1){
-    std::poisson_distribution<int> d(lambda);
+    boost::random::poisson_distribution<int> d(lambda);
     ind->simIni[id] = d(_eng[rx_get_thread(op_global.cores)]);
   }
   return ind->simIni[id];
@@ -1325,7 +1338,7 @@ extern "C" int ripois(rx_solving_options_ind* ind, int id, double lambda){
 IntegerVector rxpois_(double lambda, int n, int ncores){
   IntegerVector ret(n);
   int n2 = ret.size();
-  std::poisson_distribution<int> d(lambda);
+  boost::random::poisson_distribution<int> d(lambda);
   int *retD = ret.begin();
 
 #ifdef _OPENMP
@@ -1349,13 +1362,13 @@ IntegerVector rxpois_(double lambda, int n, int ncores){
 
 extern "C" double rxt_(rx_solving_options_ind* ind, double df){
   if (!ind->inLhs) return 0.0;
-  std::student_t_distribution<double> d(df);
+  boost::random::student_t_distribution<double> d(df);
   return d(_eng[rx_get_thread(op_global.cores)]);
 }
 
 extern "C" double rit_(rx_solving_options_ind* ind, int id, double df){
   if (ind->isIni == 1){
-    std::student_t_distribution<double> d(df);
+    boost::random::student_t_distribution<double> d(df);
     ind->simIni[id] =  d(_eng[rx_get_thread(op_global.cores)]);
   }
   return ind->simIni[id];
@@ -1365,7 +1378,7 @@ extern "C" double rit_(rx_solving_options_ind* ind, int id, double df){
 NumericVector rxt__(double df, int n, int ncores){
   NumericVector ret(n);
   int n2 = ret.size();
-  std::student_t_distribution<double> d(df);
+  boost::random::student_t_distribution<double> d(df);
   double *retD = ret.begin();
 
 #ifdef _OPENMP
@@ -1429,14 +1442,14 @@ NumericVector rxunif_(double low, double hi, int n, int ncores){
 
 extern "C" double rxweibull(rx_solving_options_ind* ind, double shape, double scale){
   if (!ind->inLhs) return 0.0;
-  std::weibull_distribution<double> d(shape, scale);
+  boost::random::weibull_distribution<double> d(shape, scale);
   return d(_eng[rx_get_thread(op_global.cores)]);
 }
 
 
 extern "C" double riweibull(rx_solving_options_ind* ind, int id, double shape, double scale){
   if (ind->isIni) {
-    std::weibull_distribution<double> d(shape, scale);
+    boost::random::weibull_distribution<double> d(shape, scale);
     ind->simIni[id] = d(_eng[rx_get_thread(op_global.cores)]);
   }
   return ind->simIni[id];
@@ -1446,7 +1459,7 @@ extern "C" double riweibull(rx_solving_options_ind* ind, int id, double shape, d
 NumericVector rxweibull_(double shape, double scale, int n, int ncores){
   NumericVector ret(n);
   int n2 = ret.size();
-  std::weibull_distribution<double> d(shape, scale);
+  boost::random::weibull_distribution<double> d(shape, scale);
   double *retD = ret.begin();
 
 #ifdef _OPENMP
@@ -1747,7 +1760,7 @@ SEXP rxRmvnSEXP(SEXP nS,
 }
 
 static inline NumericVector rpp_h(int n, double& lambda, double& t0i, double &tmax){
-  std::exponential_distribution<double> d(lambda);
+  boost::random::exponential_distribution<double> d(lambda);
   double t0 = t0i;
   NumericVector ret(n);
   for (int i = 0; i < n; ++i){
@@ -1798,7 +1811,7 @@ NumericVector rpp_(SEXP nS, SEXP lambdaS, SEXP gammaS, SEXP probS, SEXP t0S, SEX
 	int cur = 0;
 	NumericVector ret(n);
 	std::uniform_real_distribution<double> runif(0.0, 1.0);
-	std::exponential_distribution<double> rexp(lambda);
+	boost::random::exponential_distribution<double> rexp(lambda);
 	double ttest;
 	while (cur != n){
 	  ttest = t0 + rexp(_eng[rx_get_thread(op_global.cores)]);
